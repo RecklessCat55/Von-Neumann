@@ -1,0 +1,2015 @@
+;*******************************************************************
+; PRACTICA 2
+; ALUMNE: SAMUEL NTIM I HECTOR MORALES
+; CURSO: 2024-2025
+;*******************************************************************
+
+TECLAT EQU 0B000h
+PANTALLA EQU 0A000h
+ORIGEN 100h
+INICIO ini
+
+.DATOS
+;Vectors per imprimir el titol del JOC
+text_splash_1 VALOR "***************"
+text_splash_2 VALOR "*TRES EN RALLA*"
+text_splash_3 VALOR "*     BY      *"
+text_splash_4 VALOR "*SAMUEL-HECTOR*"    
+text_splash_5 VALOR "***************"
+text_splash_6 VALOR "  PREM ESPAI   "
+text_splash_7 VALOR "***************"
+
+;Vector per imprimir la taula
+taula_fila VALOR "123"
+taula_columna VALOR "123"
+
+;Variables EL CONTOLA DEL JOC 
+fila Valor "FILA: " ;Fila que selecciona el jugador
+columna Valor "COLUMNA: " ; Columna que selecciona el jugador
+jugador Valor 1 ;Torn que esta jugando (1 o 2)
+guanyador Valor 0 ;determinem guanyador (0 = no guanyador, 1 = guanyador 1, 2 = guanyador 2, 3 = empatat)
+
+;Variables per a la gestió de coordenades
+coordenades_fila Valor 0
+coordenades_columna Valor 0
+
+;noms de les variables
+nom_jugador1 Valor "          "
+nom_jugador2 Valor "          "
+
+;Vactors per mostrar guanyador
+torn_jugador VALOR "J1: "
+torn_jugador2 VALOR "J2: "
+text_guanyador Valor "HAS GUANYAT"
+text_guanyador_1 VALOR "JUGADOR 1 HA GUANYAT"
+text_guanyador_2 VALOR "JUGADOR 2 HA GUANYAT"
+text_empat VALOR "EMPATAT"
+text_reinici valor "TORNAR A JUGAR? (S/N)"
+text_jugador1 Valor "NOM JUGADOR 1: "
+text_jugador2 Valor "NOM JUGADOR 2: "
+text_ocupat Valor "OCUPAT!"
+
+;Vactors per guardar posicions dels jugadors en la taula
+fila1 VALOR 0,0,0
+fila2 VALOR 0,0,0
+fila3 VALOR 0,0,0
+
+.CODIGO
+
+ini:
+
+    ;Reiniciar joc
+    MOVL R0, BYTEBAJO DIRECCION reiniciar_joc
+    MOVH R0, BYTEALTO DIRECCION reiniciar_joc
+    CALL R0
+
+    ;Netejar pantalla
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+
+    ;Netejar teclat
+    MOVL R0, BYTEBAJO DIRECCION netejar_teclat
+    MOVH R0, BYTEALTO DIRECCION netejar_teclat
+    CALL R0
+
+    ;Imprimir titol del joc
+    MOVL R0, BYTEBAJO DIRECCION splash
+    MOVH R0, BYTEALTO DIRECCION splash
+    CALL R0
+
+    ;Consulta teclat
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0
+
+    ;mirem si el jugador ha a apretat el teclat espai
+    MOVL R0, BYTEBAJO DIRECCION esperant_espai
+    MOVH R0, BYTEALTO DIRECCION esperant_espai
+    CALL R0    
+
+    ;Demanar noms dels jugadors
+    MOVL R0, BYTEBAJO DIRECCION demanar_noms_jugadors
+    MOVH R0, BYTEALTO DIRECCION demanar_noms_jugadors
+    CALL R0
+
+    ;Imprimir la taula
+    MOVL R0, BYTEBAJO DIRECCION imprimir_taula
+    MOVH R0, BYTEALTO DIRECCION imprimir_taula
+    CALL R0
+  
+    ;Torn del jugador
+    MOVL R0, BYTEBAJO DIRECCION torns
+    MOVH R0, BYTEALTO DIRECCION torns
+    CALL R0
+
+;------------------------------------------------------
+;Netejar pantalla
+;------------------------------------------------------
+
+netejar_pantalla:
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R1, 00h
+    MOVL R1, 120
+    ADD R0, R0, R1
+
+    MOVH R1, 00h
+    MOVL R1, 11b
+    MOV [R0], R1
+    RET
+
+;------------------------------------------------------
+;Netejar teclat
+;------------------------------------------------------
+
+netejar_teclat:
+    PUSH R1
+    PUSH R2
+    XOR R0,R0,R0
+    MOVL R1, BYTEBAJO TECLAT
+    MOVH R1, BYTEALTO TECLAT
+    INC R1
+    MOVL R2, 00000100b
+    MOVH R2, 00h
+    MOV [R1], R2
+    POP R2
+    POP R1
+    RET
+;------------------------------------------------------
+;Demanar noms dels jugadors
+;------------------------------------------------------
+demanar_noms_jugadors:
+   ;Netejar pantalla
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+    
+    ; Mostrar missatge per demanar nom del jugador 1
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R3, 0      ; Posició per al missatge (inici de la pantalla)
+    MOVH R3, 00h
+    ADD R0, R0, R3
+    
+    ; Mostrar text "NOM JUGADOR 1: "
+    MOVL R1, BYTEBAJO DIRECCION text_jugador1
+    MOVH R1, BYTEALTO DIRECCION text_jugador1
+    
+    ; Bucle per mostrar el text
+    MOVL R2, 15     ; Longitud del text "NOM JUGADOR 1: "
+    MOVH R2, 00h
+    
+    t_nom_jugador:
+        MOV R4, [R1]    ; Obtenir caràcter
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R0], R4    ; Mostrar caràcter
+        INC R0          ; Següent posició pantalla
+        INC R1          ; Següent caràcter
+        DEC R2          ; Decrementar comptador
+        BRNZ t_nom_jugador
+    
+    ; Preparar per llegir el nom del jugador 1
+    MOVL R5, BYTEBAJO DIRECCION nom_jugador1
+    MOVH R5, BYTEALTO DIRECCION nom_jugador1
+    MOV R6, R0      ; R6 = posició a pantalla per escriure
+    MOVL R2, 10     ; Màxim 10 caràcters per nom
+    MOVH R2, 00h
+    
+    ; Llegir el nom del jugador 1
+    MOVL R0, BYTEBAJO DIRECCION esperant_tecla_premuda
+    MOVH R0, BYTEALTO DIRECCION esperant_tecla_premuda
+    CALL R0
+    
+    ; Netejar pantalla abans de demanar el nom del jugador 2
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+    
+    ; Mostrar missatge per demanar nom del jugador 2
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R3, 0      ; Posició per al missatge (inici de la pantalla)
+    MOVH R3, 00h
+    ADD R0, R0, R3
+    
+    ; Mostrar text "NOM JUGADOR 2: "
+    MOVL R1, BYTEBAJO DIRECCION text_jugador2
+    MOVH R1, BYTEALTO DIRECCION text_jugador2
+    
+    ; Bucle per mostrar el text
+    MOVL R2, 15     ; Longitud del text "NOM JUGADOR 2: "
+    MOVH R2, 00h
+    
+    t_nom_jugador2:
+        MOV R4, [R1]    ; Obtenir caràcter
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R0], R4    ; Mostrar caràcter
+        INC R0          ; Següent posició pantalla
+        INC R1          ; Següent caràcter
+        DEC R2          ; Decrementar comptador
+        BRNZ t_nom_jugador2
+    
+    ; Preparar per llegir el nom del jugador 2
+    MOVL R5, BYTEBAJO DIRECCION nom_jugador2
+    MOVH R5, BYTEALTO DIRECCION nom_jugador2
+    MOV R6, R0      ; R6 = posició a pantalla per escriure
+    MOVL R2, 10     ; Màxim 10 caràcters per nom
+    MOVH R2, 00h
+    
+    ; Llegir el nom del jugador 2
+    MOVL R0, BYTEBAJO DIRECCION esperant_tecla_premuda
+    MOVH R0, BYTEALTO DIRECCION esperant_tecla_premuda
+    CALL R0
+    
+    ; Netejar pantalla abans de continuar
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+    
+    ; Asegurar que jugador esté establecido a 1
+    MOVL R0, BYTEBAJO DIRECCION jugador
+    MOVH R0, BYTEALTO DIRECCION jugador
+    MOVL R1, 1
+    MOVH R1, 00h
+    MOV [R0], R1
+    
+    RET
+;------------------------------------------------------
+;Imprimir titol del joc
+;------------------------------------------------------
+
+splash:
+    ; Utilitzem R0 per accedir a la pantalla
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ; Utilitzem R2 de contador, amb les 120 posicions de pantalla
+    MOVL R2, 105
+    MOVH R2, 00h
+    
+    ; Utilitzem R3 per referenciar el vector a imprimir
+    MOVL R3, BYTEBAJO DIRECCION text_splash_1
+    MOVH R3, BYTEALTO DIRECCION text_splash_1
+    
+    imprimir_titol:
+        MOV R4, [R3]        ; Llegim el valor de memoria a imprimir
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R0], R4        ; Enviem a pantalla les dades a imprimir
+        INC R0              ; Movem a la següent posició de pantalla
+        INC R3              ; Movem a la següent posició del vector
+        DEC R2              ; Decrementem el contador
+        BRNZ imprimir_titol ; Quan el contador és 0, hem acabat
+        RET
+
+;------------------------------------------------------
+;Consulta teclat
+;------------------------------------------------------
+
+consulta_teclat:    
+    ; Obtenir l'adreça base del teclat
+    MOVL R0, BYTEBAJO TECLAT
+    MOVH R0, BYTEALTO TECLAT
+    INC R0              ; Incrementar per accedir al registre d'estat del teclat
+
+    ; Preparar la màscara per comprovar el bit d'estat (bit 8)
+    MOVL R1, 00000000b  ; Byte baix de la màscara
+    MOVH R1, 00000001b  ; Byte alt de la màscara (bit 8 = 1)
+    
+    estat: 
+        MOV R3, [R0]    ; Llegir el registre d'estat del teclat
+        AND R3, R3, R1  ; Aplicar màscara per aïllar el bit d'estat
+        COMP R1, R3     ; Comparar si el bit d'estat està actiu
+        BRNZ estat      ; Si no està actiu (R1 != R3), seguir esperant
+        RET             ; Si està actiu, retornar per llegir el valor de la tecla
+
+;------------------------------------------------------
+;Esperant espai
+;------------------------------------------------------
+
+esperant_espai:
+    
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0
+    
+    MOVL R0, BYTEBAJO TECLAT
+    MOVH R0, BYTEALTO TECLAT
+    
+    MOV R1, [R0]
+    MOVL R0, 20h
+    MOVH R0, 32h
+    COMP R1, R0
+    BRNZ esperant_espai
+
+    RET
+
+;------------------------------------------------------
+;Esperant tecla premuda
+;------------------------------------------------------
+
+esperant_tecla_premuda:
+
+    ; R5 contiene la dirección donde guardar el texto (nom_jugador1 o nom_jugador2)
+    ; R6 contiene la posición en pantalla donde mostrar el texto
+    ; R2 contiene el número máximo de caracteres a leer
+    
+    ; Inicializar contador de caracteres
+    XOR R3, R3, R3    ; R3 = 0 (contador de caracteres)
+    
+    bucle_lectura:
+        ; Esperar a que se pulse una tecla
+        MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+        MOVH R0, BYTEALTO DIRECCION consulta_teclat
+        CALL R0
+        
+        ; Obtener el carácter pulsado
+        MOVL R0, BYTEBAJO TECLAT
+        MOVH R0, BYTEALTO TECLAT
+        MOV R1, [R0]    ; R1 = carácter pulsado
+
+        ;Comprobar si es espacio para finalizar la entrada
+        MOVL R0, 20h
+        MOVH R0, 32h
+        COMP R1, R0
+        BRZ fin_lectura
+                     
+        ; Comprobar si hemos alcanzado el máximo de caracteres
+        COMP R3, R2
+        BRZ bucle_lectura    ; Si ya tenemos el máximo, ignorar
+        MOV [R5], R1         ; Guardar el carácter en memoria
+        INC R5               ; Siguiente posición de memoria
+        
+        ; Mostrar el carácter en pantalla
+        MOV R0, R1
+        MOVH R0, 00000111b    ; Formato (blanco sobre negro)
+        MOV [R6], R0
+        INC R6               ; Siguiente posición en pantalla
+        INC R3               ; Incrementar contador
+        JMP bucle_lectura    ; Volver a esperar otra tecla
+        
+    fin_lectura:
+      RET
+
+;------------------------------------------------------
+;Imprimir taula
+;------------------------------------------------------
+
+imprimir_taula:
+
+    ;Utilitzem R0 per accedir a la pantalla
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ;Colocacio de la taula
+    MOVL R2, 65
+    MOVH R2, 00h
+    ADD R1, R0, R2
+
+    ;Utilitzem R5 de contador, amb les 120 posicions de pantalla
+    MOVL R5, 3
+    MOVH R5, 00h
+    
+    ;Utilitzem R3 per referenciar el vector a imprimir
+    MOVL R3, BYTEBAJO DIRECCION taula_fila
+    MOVH R3, BYTEALTO DIRECCION taula_fila
+    
+    imprimir_taula_fila:
+        MOV R4, [R3]                ;Llegim el valor de memoria a imprimir
+        MOVH R4, 00000111b ; Format (blanc sobre negre)
+        MOV [R1], R4                ;Enviem a pantalla les dades a imprimir
+        INC R1                      ;Movem a la següent posició de pantalla
+        INC R3                      ;Movem a la següent posició del vector
+        DEC R5                      ;Decrementem el contador
+        BRNZ imprimir_taula_fila    ;Quan el contador és 0, hem acabat
+    
+   ;Imprimir columna
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ;Colocacio de la taula per a les columnes
+    MOVL R2, 79      ; Posició per a la primera columna
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    ;Utilitzem R5 de contador
+    MOVL R5, 3
+    MOVH R5, 00h
+    
+    ;Utilitzem R3 per referenciar el vector a imprimir
+    MOVL R3, BYTEBAJO DIRECCION taula_columna   
+    MOVH R3, BYTEALTO DIRECCION taula_columna
+    
+    imprimir_taula_columna:
+        MOV R4, [R3]                ;Llegim el valor de memoria a imprimir
+        MOVH R4, 00000111b ; Format (blanc sobre negre)
+        MOV [R1], R4                ;Enviem a pantalla les dades a imprimir
+        
+        ;Avançar a la següent fila (15 posicions)
+        MOVL R6, 15
+        MOVH R6, 00h
+        ADD R1, R1, R6              ;Movem a la següent posició de pantalla
+        
+        INC R3                      ;Movem a la següent posició del vector
+        DEC R5                      ;Decrementar contador
+        BRNZ imprimir_taula_columna ;Quan el contador és 0, hem acabat  
+    
+    ;Dibuixar la quadrícula interior (3x3)
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ;Posició inicial de la quadrícula
+    MOVL R2, 80      ; Posició per a la primera cel·la
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    ;Dibuixar la primera fila de la quadrícula
+    MOVL R4, ' '        ; Caràcter espai (en blanco)
+    MOVH R4, 01110000b  ; Fondo gris (bit 4-6 = 111), texto negro (bit 0-3 = 0000)
+    MOV [R1], R4     ; Primera cel·la
+    
+    INC R1
+    MOV [R1], R4     ; Segona cel·la
+    
+    INC R1
+    MOV [R1], R4     ; Tercera cel·la
+
+    ;Dibuixar la segona fila de la quadrícula
+    MOVL R2, 95      ; Posició per a la segona fila
+    MOVH R2, 00h
+    ADD R1, R0, R2
+
+    MOV [R1], R4     ; Primera cel·la
+
+    INC R1
+    MOV [R1], R4     ; Segona cel·la
+
+    INC R1
+    MOV [R1], R4     ; Tercera cel·la
+
+    ;Dibuixar la tercera fila de la quadrícula
+    MOVL R2, 110     ; Posició per a la tercera fila
+    MOVH R2, 00h
+    ADD R1, R0, R2
+
+    MOV [R1], R4     ; Primera cel·la
+
+    INC R1
+    MOV [R1], R4     ; Segona cel·la
+
+    INC R1
+    MOV [R1], R4     ; Tercera cel·la
+    
+    RET
+
+
+;------------------------------------------------------
+;Torn del jugador
+;------------------------------------------------------
+torns:
+
+    ;Mostrar quin jugador té el torn
+    MOVL R0, BYTEBAJO DIRECCION mostrar_jugador
+    MOVH R0, BYTEALTO DIRECCION mostrar_jugador
+    CALL R0
+
+    ;Demana fila
+    MOVL R0, BYTEBAJO DIRECCION demanar_fila
+    MOVH R0, BYTEALTO DIRECCION demanar_fila
+    CALL R0
+
+    ;Esperant fila y validant fila
+    MOVL R0, BYTEBAJO DIRECCION esperant_fila
+    MOVH R0, BYTEALTO DIRECCION esperant_fila
+    CALL R0
+
+    ;demana columna
+    MOVL R0, BYTEBAJO DIRECCION demanar_columna
+    MOVH R0, BYTEALTO DIRECCION demanar_columna
+    CALL R0
+
+    ;Esperant columna y validant columna
+    MOVL R0, BYTEBAJO DIRECCION esperant_columna
+    MOVH R0, BYTEALTO DIRECCION esperant_columna
+    CALL R0
+
+    ;Validar posicio
+    MOVL R0, BYTEBAJO DIRECCION validar_posicio
+    MOVH R0, BYTEALTO DIRECCION validar_posicio
+    CALL R0
+
+    ;Actualitzar tauler
+    MOVL R0, BYTEBAJO DIRECCION actualitzar_taula
+    MOVH R0, BYTEALTO DIRECCION actualitzar_taula
+    CALL R0
+
+    ;Comprovar si ha ganado
+    MOVL R0, BYTEBAJO DIRECCION comprovar_victoria
+    MOVH R0, BYTEALTO DIRECCION comprovar_victoria
+    CALL R0
+
+    ;Si arribem aquí, la posició era vàlida, canviem el torn
+    MOVL R0, BYTEBAJO DIRECCION canviar_torn
+    MOVH R0, BYTEALTO DIRECCION canviar_torn
+    CALL R0
+
+    ;Torn del jugador
+    MOVL R0, BYTEBAJO DIRECCION torns
+    MOVH R0, BYTEALTO DIRECCION torns
+    CALL R0
+
+    RET
+    
+;------------------------------------------------------
+;Mostrar jugador actual
+;------------------------------------------------------
+mostrar_jugador:
+    ; Utilitzem R0 per accedir a la pantalla
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ; Posició per mostrar el nom (posició 0)
+    MOVL R1, 0
+    MOVH R1, 00h
+    ADD R1, R0, R1
+    
+    ; Netejar la línia abans de mostrar el nom (15 posicions)
+    MOVL R2, 15
+    MOVH R2, 00h
+    
+    bucle_netejar:
+        MOVL R4, ' '
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R1], R4
+        INC R1
+        DEC R2
+        BRNZ bucle_netejar
+    
+    ; Tornar a la posició inicial
+    MOVL R1, 0
+    MOVH R1, 00h
+    ADD R1, R0, R1
+    
+    ; Determinar quin jugador té el torn
+    MOVL R3, BYTEBAJO DIRECCION jugador
+    MOVH R3, BYTEALTO DIRECCION jugador
+    MOV R4, [R3]      ; R4 = valor de jugador
+    
+    ; Comprovar si és jugador 1 o 2
+    MOVL R5, 1
+    MOVH R5, 00h
+    COMP R4, R5
+    BRZ mostrar_j1
+    
+    ; Si no és jugador 1, mostrar torn_jugador2 (J2:)
+    MOVL R3, BYTEBAJO DIRECCION torn_jugador2
+    MOVH R3, BYTEALTO DIRECCION torn_jugador2
+    
+    ; Bucle per mostrar el text
+    MOVL R2, 4     ; Longitud del text "J2: "
+    MOVH R2, 00h
+    
+    mostrar_j2:
+        MOV R4, [R3]    ; Obtenir caràcter
+        MOVH R4, 00000101b  ; Format (text cià sobre negre)
+        MOV [R1], R4    ; Mostrar caràcter
+        INC R1          ; Següent posició pantalla
+        INC R3          ; Següent caràcter
+        DEC R2          ; Decrementar comptador
+        BRNZ mostrar_j2
+    
+    ; Carregar adreça del nom del jugador 2
+    MOVL R3, BYTEBAJO DIRECCION nom_jugador2
+    MOVH R3, BYTEALTO DIRECCION nom_jugador2
+    
+    ; Bucle per mostrar el nom (10 caràcters)
+    MOVL R2, 10
+    MOVH R2, 00h
+    
+    ; Indicar que estem mostrant el jugador 2
+    MOVL R6, 2
+    MOVH R6, 00h
+    
+    JMP mostrar_nom
+    
+mostrar_j1:
+    ; Mostrar torn_jugador (J1:)
+    MOVL R3, BYTEBAJO DIRECCION torn_jugador
+    MOVH R3, BYTEALTO DIRECCION torn_jugador
+    
+    ; Bucle per mostrar el text
+    MOVL R2, 4     ; Longitud del text "J1: "
+    MOVH R2, 00h
+    
+    mostrar_j1_bucle:
+        MOV R4, [R3]            ; Obtenir caràcter
+        MOVH R4, 00000100b      ; Format (text vermell sobre negre)
+        MOV [R1], R4            ; Mostrar caràcter
+        INC R1                  ; Següent posició pantalla
+        INC R3                  ; Següent caràcter
+        DEC R2                  ; Decrementar comptador
+        BRNZ mostrar_j1_bucle
+    
+    ; Carregar adreça del nom del jugador 1
+    MOVL R3, BYTEBAJO DIRECCION nom_jugador1
+    MOVH R3, BYTEALTO DIRECCION nom_jugador1
+    
+    ; Bucle per mostrar el nom (10 caràcters)
+    MOVL R2, 10
+    MOVH R2, 00h
+
+    ; Indicar que estem mostrant el jugador 1
+    MOVL R6, 1
+    MOVH R6, 00h
+    
+    JMP mostrar_nom
+    
+mostrar_nom:
+    ; Mostrar els 10 caràcters del nom
+    MOV R4, [R3]    ; Llegir caràcter
+    
+    ; Comprovar quin jugador estem mostrant (R6 = 1 per jugador 1, R6 = 2 per jugador 2)
+    MOVL R5, 1
+    MOVH R5, 00h
+    COMP R6, R5
+    BRZ format_jugador1
+    
+    ; Format per jugador 2 (cià)
+    MOVH R4, 00000101b    ; Format (text cià sobre negre)
+    JMP continuar_mostrar_nom
+    
+format_jugador1:
+    ; Format per jugador 1 (vermell)
+    MOVH R4, 00000100b    ; Format (text vermell sobre negre)
+    
+continuar_mostrar_nom:
+    MOV [R1], R4    ; Mostrar caràcter
+    
+    ; Avançar al següent caràcter
+    INC R1
+    INC R3
+    
+    ; Decrementar comptador
+    DEC R2
+    BRNZ mostrar_nom
+    
+fi_mostrar_jugador:
+    RET
+
+;------------------------------------------------------
+;DEMANAR Fila
+;------------------------------------------------------
+demanar_fila:
+    ; Utilitzem R0 per accedir a la pantalla
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA 
+
+    ;Posició per mostrar el missatge
+    MOVL R1, 15
+    MOVH R1, 00h
+    ADD R1, R0, R1
+    
+    ;Utilitzem R3 per referenciar el vector a imprimir
+    MOVL R3, BYTEBAJO DIRECCION fila
+    MOVH R3, BYTEALTO DIRECCION fila
+    
+    ;Utilitzem R5 de contador
+    MOVL R5, 5  ; "FILA: " té 5 caràcters
+    MOVH R5, 00h
+    
+    imprimir_text_coordenades:
+        MOV R4, [R3]                    ; Llegir caràcter
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R1], R4                    ; Mostrar
+        INC R1                          ; Següent posició pantalla
+        INC R3                          ; Següent caràcter
+        DEC R5                          ; Decrementar contador
+        BRNZ imprimir_text_coordenades ; Repetir si no hem acabat
+RET
+
+;------------------------------------------------------
+;Esperant fila
+;------------------------------------------------------
+esperant_fila:
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0
+
+    MOVL R0, BYTEBAJO TECLAT
+    MOVH R0, BYTEALTO TECLAT
+    MOV R1, [R0] 
+
+    MOVH R1, 00h
+
+    ;Comprovar si la fila es correcta
+    MOVL R0, '1'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ fila_correcta
+
+    MOVL R0, '2'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ fila_correcta
+
+    MOVL R0, '3'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ fila_correcta
+
+    JMP esperant_fila
+
+    
+;------------------------------------------------------
+;Fila correcta
+;------------------------------------------------------
+fila_correcta:
+    
+    ;Guardem la fila introduïda
+    MOVH R1, BYTEALTO DIRECCION coordenades_fila
+    MOVL R1, BYTEBAJO DIRECCION coordenades_fila
+    MOV [R1], R0
+
+    MOVL R1, BYTEBAJO PANTALLA
+    MOVH R1, BYTEALTO PANTALLA
+    
+    ;Posició per mostrar la fila introduïda
+    MOVL R2, 21
+    MOVH R2, 00h
+    ADD R1, R1, R2
+    
+    MOV R4, R0  
+    MOVH R4, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R4
+    
+RET
+
+;------------------------------------------------------
+;DEMANAR COLUMNA
+;------------------------------------------------------
+demanar_columna:
+    ;Posició per mostrar el missatge de columna
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    MOVL R2, 30
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    ;Utilitzem R3 per referenciar el vector a imprimir
+    MOVL R3, BYTEBAJO DIRECCION columna
+    MOVH R3, BYTEALTO DIRECCION columna
+    
+    ;Utilitzem R5 de contador
+    MOVL R5, 8  ; Longitud aproximada del missatge
+    MOVH R5, 00h
+    
+    imprimir_text_columna:
+        MOV R4, [R3]        ; Llegir caràcter
+        MOVH R4, 00000111b  ; Format (blanc sobre negre)
+        MOV [R1], R4        ; Mostrar
+        INC R1              ; Següent posició pantalla
+        INC R3              ; Següent caràcter
+        DEC R5              ; Decrementar contador
+        BRNZ imprimir_text_columna ; Repetir si no hem acabat
+RET
+
+;------------------------------------------------------
+;esperant columna 
+;------------------------------------------------------
+esperant_columna:
+    
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0
+    
+    MOVL R0, BYTEBAJO TECLAT
+    MOVH R0, BYTEALTO TECLAT
+    MOV R1, [R0] 
+
+    MOVH R1, 00h
+
+    ;Comprovar si la columna es correcta
+    MOVL R0, '1'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ columna_correcta
+
+    MOVL R0, '2'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ columna_correcta
+
+    MOVL R0, '3'
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ columna_correcta
+
+    JMP esperant_columna
+
+
+;------------------------------------------------------
+;Columna correcta
+;------------------------------------------------------
+columna_correcta:
+   
+    ;Guardem la columna introduïda
+    MOVH R1, BYTEALTO DIRECCION coordenades_columna
+    MOVL R1, BYTEBAJO DIRECCION coordenades_columna
+    MOV [R1], R0
+
+    MOVL R1, BYTEBAJO PANTALLA
+    MOVH R1, BYTEALTO PANTALLA
+    
+    ;Posició per mostrar la columna introduïda
+    MOVL R2, 39
+    MOVH R2, 00h
+    ADD R1, R1, R2
+    
+    MOV R4, R0  
+    MOVH R4, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R4
+
+    RET
+
+
+;------------------------------------------------------
+;Validar posicio ocupada
+;------------------------------------------------------
+validar_posicio:
+    
+    ;Obtenir les coordenades de fila 
+    MOVL R0, BYTEBAJO DIRECCION coordenades_fila
+    MOVH R0, BYTEALTO DIRECCION coordenades_fila
+    MOV R1, [R0]
+    
+    ;Obtenir les coordenades de columna
+    MOVL R2, BYTEBAJO DIRECCION coordenades_columna
+    MOVH R2, BYTEALTO DIRECCION coordenades_columna
+    MOV R3, [R2]
+
+    ;Obtenir els valors numèrics de fila i columna
+    MOVL R0, '0'
+    MOVH R0, 00h
+    SUB R1, R1, R0   ; R1 = valor numèric de la fila (1-3)
+    SUB R3, R3, R0   ; R3 = valor numèric de la columna (1-3)
+
+   ;Determinar quin vector de fila utilitzar
+    MOVL R0, 1
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ mirem_fila1
+
+    MOVL R0, 2
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ mirem_fila2
+
+    MOVL R0, 3
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ mirem_fila3
+    
+
+    mirem_fila1:
+        MOVL R0, BYTEBAJO DIRECCION fila1
+        MOVH R0, BYTEALTO DIRECCION fila1
+        JMP mirem_posicio
+
+    mirem_fila2:
+        MOVL R0, BYTEBAJO DIRECCION fila2
+        MOVH R0, BYTEALTO DIRECCION fila2
+        JMP mirem_posicio
+
+    mirem_fila3:
+        MOVL R0, BYTEBAJO DIRECCION fila3
+        MOVH R0, BYTEALTO DIRECCION fila3
+        JMP mirem_posicio
+
+    mirem_posicio:
+        ; Ajustar la columna (restar 1 per obtenir índex 0-2)
+        DEC R3
+    
+        ; Sumar l'índex de columna a l'adreça base
+        ADD R0, R0, R3
+    
+        ; Comprovar si la posició està ocupada
+        MOV R3, [R0]
+    
+        ; Si R3 = 0, la posició està lliure
+        MOVL R4, 0
+        MOVH R4, 00h
+        COMP R3, R4
+        BRZ posicio_valida
+
+       ; Si arribem aquí, la posició ja està ocupada
+        ; Mostrar un missatge d'error
+        MOVL R0, BYTEBAJO PANTALLA
+        MOVH R0, BYTEALTO PANTALLA
+        
+        ; Posició per al missatge d'error
+        MOVL R1, 45
+        MOVH R1, 00h
+        ADD R0, R0, R1
+    
+        ; Mostrar "OCUPAT!" utilitzant la variable text_ocupat
+        MOVL R3, BYTEBAJO DIRECCION text_ocupat
+        MOVH R3, BYTEALTO DIRECCION text_ocupat
+        
+        ; Bucle per mostrar el text
+        MOVL R2, 7     ; Longitud del text "OCUPAT!"
+        MOVH R2, 00h
+        
+        mostrar_ocupat:
+            MOV R4, [R3]    ; Obtenir caràcter
+            MOVH R4, 00000111b  ; Format (blanc sobre negre)
+            MOV [R0], R4    ; Mostrar caràcter
+            INC R0          ; Següent posició pantalla
+            INC R3          ; Següent caràcter
+            DEC R2          ; Decrementar comptador
+            BRNZ mostrar_ocupat
+        
+        ; Esperar que l'usuari premi una tecla
+        MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+        MOVH R0, BYTEALTO DIRECCION consulta_teclat
+        CALL R0
+        
+        ; Retornar 0 (posició no vàlida)
+        MOVL R0, 0
+        MOVH R0, 00h
+
+        ;Comprovar si la posició no és vàlida (R0 = 0)
+        MOVL R1, 0
+        MOVH R1, 00h
+        COMP R0, R1      ; Compara R0 con 0
+        BRZ posicio_no_valida  ; Salta si R0 = 0 (posición no válida)
+
+RET
+
+
+;------------------------------------------------------
+;Posicio valida
+;------------------------------------------------------
+
+posicio_valida:
+    ; Guardar el valor del jugador a la posició
+    MOVL R4, BYTEBAJO DIRECCION jugador
+    MOVH R4, BYTEALTO DIRECCION jugador
+    MOV R5, [R4]
+    
+    ; Si jugador = 1, guardar 1; si jugador = 2, guardar 5
+    MOVL R4, 1
+    MOVH R4, 00h
+    COMP R5, R4
+    BRZ guardar_jugador1
+    
+    ; Si no és jugador 1, és jugador 2
+    MOVL R4, 5
+    MOVH R4, 00h
+    MOV [R0], R4
+    
+    ; Retornar 1 (posició vàlida)
+    MOVL R0, 1
+    MOVH R0, 00h
+    RET
+    
+    guardar_jugador1:
+        MOVL R4, 1
+        MOVH R4, 00h
+        MOV [R0], R4
+        
+        ; Retornar 1 (posició vàlida)
+        MOVL R0, 1
+        MOVH R0, 00h
+    RET
+    
+
+;------------------------------------------------------
+;Posicio no valida
+;------------------------------------------------------
+
+posicio_no_valida:
+    ;Si la posició no era vàlida, tornem a demanar coordenades al mateix jugador
+    ;Netejar el missatge d'error després d'un moment
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0
+    
+    ;Netejar el missatge d'error i les coordenades anteriors
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ; Netejar la posició de la fila introduïda
+    MOVL R2, 21
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    MOVL R2, ' '
+    MOVH R2, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R2
+    
+    ; Netejar la posició de la columna introduïda
+    MOVL R2, 39
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    MOVL R2, ' '
+    MOVH R2, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R2
+    
+    ;Posició del missatge d'error
+    MOVL R2, 45
+    MOVH R2, 00h
+    ADD R1, R0, R2
+
+    ;Esborrar "OCUPADA!" (8 caràcters)
+    MOVL R3, 8
+    MOVH R3, 00h
+    
+    netejar_error:
+        MOVL R2, ' '
+        MOVH R2, 00000111b  ; Format (blanc sobre negre)
+        MOV [R1], R2
+        INC R1
+        DEC R3
+        BRNZ netejar_error
+    
+    ;Tornem a demanar coordenades al mateix jugador
+    MOVL R0, BYTEBAJO DIRECCION torns
+    MOVH R0, BYTEALTO DIRECCION torns
+    CALL R0
+    
+    RET
+
+;------------------------------------------------------
+;Canviar torn
+;------------------------------------------------------
+canviar_torn:
+    ;Obtenir el jugador actual
+    MOVL R0, BYTEBAJO DIRECCION jugador
+    MOVH R0, BYTEALTO DIRECCION jugador
+    MOV R1, [R0]
+    
+    ;Canviar entre jugador 1 i 2
+    MOVL R2, 1      ; Cargar el valor 1 en un registro
+    MOVH R2, 00h
+    COMP R1, R2
+    BRZ canviar_a_jugador2
+    
+    ;Si no és jugador 1, canviar a jugador 1
+    MOVL R1, 1
+    MOVH R1, 00h
+    JMP guardar_jugador
+    
+    canviar_a_jugador2:
+    MOVL R1, 2
+    MOVH R1, 00h
+    
+    guardar_jugador:
+    MOV [R0], R1    ; Guardar el nou valor del jugador
+    
+    ; Netejar les coordenades introduïdes anteriorment
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ; Netejar la posició de la fila introduïda
+    MOVL R2, 21
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    MOVL R2, ' '
+    MOVH R2, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R2
+    
+    ; Netejar la posició de la columna introduïda
+    MOVL R2, 39
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    MOVL R2, ' '
+    MOVH R2, 00000111b  ; Format (blanc sobre negre)
+    MOV [R1], R2
+    
+    ; Netejar el missatge d'error si n'hi ha
+    MOVL R2, 45
+    MOVH R2, 00h
+    ADD R1, R0, R2
+    
+    ; Esborrar "OCUPADA!" (8 caràcters)
+    MOVL R3, 8
+    MOVH R3, 00h
+    
+    netejar_missatge:
+        MOVL R2, ' '
+        MOVH R2, 00000111b  ; Format (blanc sobre negre)
+        MOV [R1], R2
+        INC R1
+        DEC R3
+        BRNZ netejar_missatge
+    
+    RET
+
+;------------------------------------------------------
+;Actualitzar taula
+;------------------------------------------------------
+actualitzar_taula:
+    ;Obtenir les coordenades de fila 
+    MOVL R0, BYTEBAJO DIRECCION coordenades_fila
+    MOVH R0, BYTEALTO DIRECCION coordenades_fila
+    MOV R1, [R0]
+    
+    ;Obtenir les coordenades de columna
+    MOVL R2, BYTEBAJO DIRECCION coordenades_columna
+    MOVH R2, BYTEALTO DIRECCION coordenades_columna
+    MOV R3, [R2]
+
+    ;Obtenir els valors numèrics de fila i columna
+    MOVL R0, '0'
+    MOVH R0, 00h
+    SUB R1, R1, R0   ; R1 = valor numèric de la fila (1-3)
+    SUB R3, R3, R0   ; R3 = valor numèric de la columna (1-3)
+
+    ;Determinar quin vector de fila utilitzar i obtenir el valor
+    MOVL R0, 1
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ accedir_fila1_valor
+    
+    MOVL R0, 2
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ accedir_fila2_valor
+    
+    MOVL R0, 3
+    MOVH R0, 00h
+    COMP R1, R0
+    BRZ accedir_fila3_valor
+    
+accedir_fila1_valor:
+    MOVL R0, BYTEBAJO DIRECCION fila1
+    MOVH R0, BYTEALTO DIRECCION fila1
+    JMP obtenir_valor
+    
+accedir_fila2_valor:
+    MOVL R0, BYTEBAJO DIRECCION fila2
+    MOVH R0, BYTEALTO DIRECCION fila2
+    JMP obtenir_valor
+    
+accedir_fila3_valor:
+    MOVL R0, BYTEBAJO DIRECCION fila3
+    MOVH R0, BYTEALTO DIRECCION fila3
+    
+obtenir_valor:
+    ;Ajustar la columna (restar 1 per obtenir índex 0-2)
+    DEC R3
+    
+    ;Sumar l'índex de columna a l'adreça base
+    ADD R0, R0, R3
+    
+    ;Obtenir el valor a la posició
+    MOV R5, [R0]     ; R5 = valor a la posició (1 o 5)
+    
+    ;Calcular la posició a la pantalla
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    
+    ;Determinar la posició segons la fila
+    MOVL R4, 1
+    MOVH R4, 00h
+    COMP R1, R4
+    BRZ fila_1
+    
+    MOVL R4, 2
+    MOVH R4, 00h
+    COMP R1, R4
+    BRZ fila_2
+    
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R1, R4
+    BRZ fila_3
+    
+fila_1:
+    ;Posicions per a la primera fila (80, 81, 82)
+    MOVL R4, 80
+    MOVH R4, 00h
+    JMP calcular_columna
+    
+fila_2:
+    ;Posicions per a la segona fila (95, 96, 97)
+    MOVL R4, 95
+    MOVH R4, 00h
+    JMP calcular_columna
+    
+fila_3:
+    ;Posicions per a la tercera fila (110, 111, 112)
+    MOVL R4, 110
+    MOVH R4, 00h
+    
+calcular_columna:
+    ;Recuperar l'índex de columna
+    MOVL R0, '0'
+    MOVH R0, 00h
+    MOVL R2, BYTEBAJO DIRECCION coordenades_columna
+    MOVH R2, BYTEALTO DIRECCION coordenades_columna
+    MOV R3, [R2]
+    SUB R3, R3, R0   ; R3 = valor numèric de la columna (1-3)
+    
+    ;Ajustar segons la columna (0, 1 o 2 posicions addicionals)
+    DEC R3           ; Convertir columna 1-3 a 0-2
+    ADD R4, R4, R3   ; Afegir l'offset de columna
+    
+    ;Calcular la posició final
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    ADD R0, R0, R4   ; R0 = adreça de la posició a la pantalla
+    
+    ;Determinar el símbol segons el valor (1 o 5)
+    MOVL R1, 1
+    MOVH R1, 00h
+    COMP R5, R1
+    BRZ dibuixar_X
+    
+    ;Si no és 1, és 5
+    MOVL R1, 'O'     ; Símbol per al jugador 2 (valor 5)
+    MOVH R1, 01110001b  ; Format: fons gris, text blau (001)
+    JMP dibuixar_simbol
+    
+dibuixar_X:
+    MOVL R1, 'X'     ; Símbol per al jugador 1 (valor 1)
+    MOVH R1, 01110100b  ; Format: fons gris, text vermell (100)
+    
+dibuixar_simbol:
+    MOV [R0], R1     ; Dibuixar el símbol a la pantalla
+    
+    RET
+
+;------------------------------------------------------
+;Comprovar victoria
+;------------------------------------------------------
+comprovar_victoria:
+    ;Comprovar si algun jugador ha guanyat per Fila
+
+    MOVL R0, BYTEBAJO DIRECCION guanyador_fila
+    MOVH R0, BYTEALTO DIRECCION guanyador_fila
+    CALL R0
+
+    ; Si ja tenim guanyador (R0 = 1 o R0 = 2), no cal seguir comprovant
+    MOVL R1, 0
+    MOVH R1, 00h
+    COMP R0, R1
+    BRNZ guardar_guanyador
+    
+
+    ;Comprovar si algun jugador ha guanyat per Columna
+    MOVL R0, BYTEBAJO DIRECCION guanyador_columna
+    MOVH R0, BYTEALTO DIRECCION guanyador_columna
+    CALL R0
+
+    ; Si ja tenim guanyador (R0 = 1 o R0 = 2), no cal seguir comprovant
+    MOVL R1, 0
+    MOVH R1, 00h
+    COMP R0, R1
+    BRNZ guardar_guanyador
+    
+    ;Comprovar si algun jugador ha guanyat per Diagonal
+    MOVL R0, BYTEBAJO DIRECCION guanyador_diagonal
+    MOVH R0, BYTEALTO DIRECCION guanyador_diagonal
+    CALL R0
+
+    ; Si ja tenim guanyador (R0 = 1 o R0 = 2), no cal seguir comprovant
+    MOVL R1, 0
+    MOVH R1, 00h
+    COMP R0, R1
+    BRNZ guardar_guanyador
+    
+    ;Comprovar si hi ha empatat
+    MOVL R0, BYTEBAJO DIRECCION empat
+    MOVH R0, BYTEALTO DIRECCION empat
+    CALL R0
+
+guardar_guanyador:    
+
+    ; Guardar el resultado en la variable guanyador
+    MOVL R1, BYTEBAJO DIRECCION guanyador
+    MOVH R1, BYTEALTO DIRECCION guanyador
+    MOV [R1], R0
+
+    ; Comprovar si hi ha guanyador (R0 diferent de 0)
+    MOVL R1, 0
+    MOVH R1, 00h
+    COMP R0, R1
+    BRZ no_hi_ha_guanyador
+        
+    ; Si arribem aquí, hi ha guanyador, saltem a final_joc
+    MOVL R0, BYTEBAJO DIRECCION final_joc
+    MOVH R0, BYTEALTO DIRECCION final_joc
+    JMP R0
+        
+no_hi_ha_guanyador:
+    RET
+    
+;------------------------------------------------------
+;guanyador per fila
+;------------------------------------------------------
+guanyador_fila:
+
+    ; Inicialitzem R0 a 0 (no hi ha guanyador)
+    XOR R0, R0, R0
+    
+    ; Comprovem fila 1
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    
+    ; Inicialitzem acumulador a 0
+    XOR R2, R2, R2
+    
+    ; Sumem els tres valors de la fila
+    MOV R3, [R1]      ; R3 = fila1[0]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila1[1]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila1[2]
+    ADD R2, R2, R3    ; R2 += R3
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_fila
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_fila
+    
+    ; Comprovem fila 2
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    
+    ; Inicialitzem acumulador a 0
+    XOR R2, R2, R2
+    
+    ; Sumem els tres valors de la fila
+    MOV R3, [R1]      ; R3 = fila2[0]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila2[1]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila2[2]
+    ADD R2, R2, R3    ; R2 += R3
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_fila
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_fila
+    
+    ; Comprovem fila 3
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    
+    ; Inicialitzem acumulador a 0
+    XOR R2, R2, R2
+    
+    ; Sumem els tres valors de la fila
+    MOV R3, [R1]      ; R3 = fila3[0]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila3[1]
+    ADD R2, R2, R3    ; R2 += R3
+    INC R1
+    MOV R3, [R1]      ; R3 = fila3[2]
+    ADD R2, R2, R3    ; R2 += R3
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_fila
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_fila
+    
+    ; Si arribem aquí, no hi ha guanyador
+    JMP fi_guanyador_fila
+    
+jugador1_guanya_fila:
+    MOVL R0, 1        ; Jugador 1 ha guanyat
+    MOVH R0, 00h
+    JMP fi_guanyador_fila
+    
+jugador2_guanya_fila:
+    MOVL R0, 2        ; Jugador 2 ha guanyat
+    MOVH R0, 00h
+    
+fi_guanyador_fila:
+    RET
+
+;------------------------------------------------------
+;guanyador per columna
+;------------------------------------------------------
+guanyador_columna:
+
+    ; Inicialitzem R0 a 0 (no hi ha guanyador)
+    XOR R0, R0, R0
+    
+    ; Comprovem columna 1
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    MOV R3, [R1]      ; R3 = fila1[0]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    MOV R4, [R1]      ; R4 = fila2[0]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    MOV R5, [R1]      ; R5 = fila3[0]
+    
+    ; Sumem els valors de la columna
+    XOR R2, R2, R2    ; Inicialitzem acumulador a 0
+    ADD R2, R2, R3    ; R2 += fila1[0]
+    ADD R2, R2, R4    ; R2 += fila2[0]
+    ADD R2, R2, R5    ; R2 += fila3[0]
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_columna
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_columna
+    
+    ; Comprovem columna 2
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    INC R1           ; Avançar a la segona posició
+    MOV R3, [R1]     ; R3 = fila1[1]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    INC R1           ; Avançar a la segona posició
+    MOV R4, [R1]     ; R4 = fila2[1]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    INC R1           ; Avançar a la segona posició
+    MOV R5, [R1]     ; R5 = fila3[1]
+    
+    ; Sumem els valors de la columna
+    XOR R2, R2, R2   ; Inicialitzem acumulador a 0
+    ADD R2, R2, R3   ; R2 += fila1[1]
+    ADD R2, R2, R4   ; R2 += fila2[1]
+    ADD R2, R2, R5   ; R2 += fila3[1]
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_columna
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_columna
+    
+    ; Comprovem columna 3
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    INC R1           ; Avançar a la segona posició
+    INC R1           ; Avançar a la tercera posició
+    MOV R3, [R1]     ; R3 = fila1[2]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    INC R1           ; Avançar a la segona posició
+    INC R1           ; Avançar a la tercera posició
+    MOV R4, [R1]     ; R4 = fila2[2]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    INC R1           ; Avançar a la segona posició
+    INC R1           ; Avançar a la tercera posició
+    MOV R5, [R1]     ; R5 = fila3[2]
+    
+    ; Sumem els valors de la columna
+    XOR R2, R2, R2   ; Inicialitzem acumulador a 0
+    ADD R2, R2, R3   ; R2 += fila1[2]
+    ADD R2, R2, R4   ; R2 += fila2[2]
+    ADD R2, R2, R5   ; R2 += fila3[2]
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_columna
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_columna
+    
+    ; Si arribem aquí, no hi ha guanyador
+    JMP fi_guanyador_columna
+    
+jugador1_guanya_columna:
+    MOVL R0, 1        ; Jugador 1 ha guanyat
+    MOVH R0, 00h
+    JMP fi_guanyador_columna
+    
+jugador2_guanya_columna:
+    MOVL R0, 2        ; Jugador 2 ha guanyat
+    MOVH R0, 00h
+    
+fi_guanyador_columna:
+    RET
+
+;------------------------------------------------------
+;guanyador per diagonal
+;------------------------------------------------------
+guanyador_diagonal:
+    ; Inicialitzem R0 a 0 (no hi ha guanyador)
+    XOR R0, R0, R0
+    
+    ; Comprovem diagonal principal (fila1[0], fila2[1], fila3[2])
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    MOV R3, [R1]      ; R3 = fila1[0]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    INC R1            ; Avançar a la segona posició
+    MOV R4, [R1]      ; R4 = fila2[1]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    INC R1            ; Avançar a la segona posició
+    INC R1            ; Avançar a la tercera posició
+    MOV R5, [R1]      ; R5 = fila3[2]
+    
+    ; Sumem els valors de la diagonal
+    XOR R2, R2, R2    ; Inicialitzem acumulador a 0
+    ADD R2, R2, R3    ; R2 += fila1[0]
+    ADD R2, R2, R4    ; R2 += fila2[1]
+    ADD R2, R2, R5    ; R2 += fila3[2]
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_diagonal
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_diagonal
+    
+    ; Comprovem diagonal secundària (fila1[2], fila2[1], fila3[0])
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    INC R1            ; Avançar a la segona posició
+    INC R1            ; Avançar a la tercera posició
+    MOV R3, [R1]      ; R3 = fila1[2]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    INC R1            ; Avançar a la segona posició
+    MOV R4, [R1]      ; R4 = fila2[1]
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    MOV R5, [R1]      ; R5 = fila3[0]
+    
+    ; Sumem els valors de la diagonal
+    XOR R2, R2, R2    ; Inicialitzem acumulador a 0
+    ADD R2, R2, R3    ; R2 += fila1[2]
+    ADD R2, R2, R4   ; R2 += fila2[1]
+    ADD R2, R2, R5   ; R2 += fila3[0]
+    
+    ; Comprovem si la suma és 3 (jugador 1 guanya)
+    MOVL R4, 3
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador1_guanya_diagonal
+    
+    ; Comprovem si la suma és 15 (jugador 2 guanya)
+    MOVL R4, 15
+    MOVH R4, 00h
+    COMP R2, R4
+    BRZ jugador2_guanya_diagonal
+    
+    ; Si arribem aquí, no hi ha guanyador
+    JMP fi_guanyador_diagonal
+    
+jugador1_guanya_diagonal:
+    MOVL R0, 1        ; Jugador 1 ha guanyat
+    MOVH R0, 00h
+    JMP fi_guanyador_diagonal
+    
+jugador2_guanya_diagonal:
+    MOVL R0, 2        ; Jugador 2 ha guanyat
+    MOVH R0, 00h
+    
+fi_guanyador_diagonal:
+    RET
+
+;------------------------------------------------------
+;empatat
+;------------------------------------------------------
+empat:
+ ; Inicialitzem R0 a 0 (no hi ha empat)
+    XOR R0, R0, R0
+    
+    ; Inicialitzem contador de caselles ocupades
+    XOR R2, R2, R2
+    
+    ; Comptem les caselles ocupades a fila1
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    
+    MOV R3, [R1]      ; R3 = fila1[0]
+    MOVL R4, 0
+    MOVH R4, 00h
+    COMP R3, R4
+    BRZ no_incrementar1_0
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar1_0:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila1[1]
+    COMP R3, R4
+    BRZ no_incrementar1_1
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar1_1:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila1[2]
+    COMP R3, R4
+    BRZ no_incrementar1_2
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar1_2:
+    
+    ; Comptem les caselles ocupades a fila2
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    
+    MOV R3, [R1]      ; R3 = fila2[0]
+    COMP R3, R4
+    BRZ no_incrementar2_0
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar2_0:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila2[1]
+    COMP R3, R4
+    BRZ no_incrementar2_1
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar2_1:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila2[2]
+    COMP R3, R4
+    BRZ no_incrementar2_2
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar2_2:
+    
+    ; Comptem les caselles ocupades a fila3
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    
+    MOV R3, [R1]      ; R3 = fila3[0]
+    COMP R3, R4
+    BRZ no_incrementar3_0
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar3_0:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila3[1]
+    COMP R3, R4
+    BRZ no_incrementar3_1
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar3_1:
+    
+    INC R1
+    MOV R3, [R1]      ; R3 = fila3[2]
+    COMP R3, R4
+    BRZ no_incrementar3_2
+    INC R2            ; Incrementar contador si la casella no és 0
+no_incrementar3_2:
+    
+    ; Comprovem si totes les caselles estan ocupades (9 caselles)
+    MOVL R4, 9
+    MOVH R4, 00h
+    COMP R2, R4
+    BRNZ no_hi_ha_empat  ; Si no hi ha 9 caselles ocupades, no hi ha empat
+    
+    ; Si arribem aquí, hi ha empat
+    MOVL R0, 3        ; Codi 3 = empat
+    MOVH R0, 00h
+    JMP fi_empat
+    
+no_hi_ha_empat:
+    ; No hi ha empat, R0 ja és 0
+    
+fi_empat:
+    RET
+
+;-----------------------------------------------
+;Reiniciar joc
+;-----------------------------------------------
+reiniciar_joc:
+
+    ;Reiniciar els noms dels jugadors
+    MOVL R1, BYTEBAJO DIRECCION nom_jugador1
+    MOVH R1, BYTEALTO DIRECCION nom_jugador1
+    MOVL R2, ' '
+    MOVH R2, 00h
+    MOVL R3, 10      ; Contador per a 10 caràcters
+    MOVH R3, 00h
+
+    reiniciar_nom1:
+    MOV [R1], R2  ; Guardar espai
+    INC R1        ; Següent posició
+    DEC R3        ; Decrementar contador
+    BRNZ reiniciar_nom1
+
+    MOVL R1, BYTEBAJO DIRECCION nom_jugador2
+    MOVH R1, BYTEALTO DIRECCION nom_jugador2
+    MOVL R2, ' '
+    MOVH R2, 00h
+
+    MOVL R3, 10      ; Contador per a 10 caràcters
+    MOVH R3, 00h
+
+    reiniciar_nom2:
+    MOV [R1], R2  ; Guardar espai
+    INC R1        ; Següent posició
+    DEC R3        ; Decrementar contador
+    BRNZ reiniciar_nom2
+    
+    ;Reiniciar tauler (fila1, fila2, fila3)
+    MOVL R1, BYTEBAJO DIRECCION fila1
+    MOVH R1, BYTEALTO DIRECCION fila1
+    MOVL R2, 0
+    MOVH R2, 00h
+    MOV [R1], R2      ; fila1[0] = 0
+    INC R1
+    MOV [R1], R2      ; fila1[1] = 0
+    INC R1
+    MOV [R1], R2      ; fila1[2] = 0
+    
+    MOVL R1, BYTEBAJO DIRECCION fila2
+    MOVH R1, BYTEALTO DIRECCION fila2
+    MOV [R1], R2      ; fila2[0] = 0
+    INC R1
+    MOV [R1], R2      ; fila2[1] = 0
+    INC R1
+    MOV [R1], R2      ; fila2[2] = 0
+    
+    MOVL R1, BYTEBAJO DIRECCION fila3
+    MOVH R1, BYTEALTO DIRECCION fila3
+    MOV [R1], R2      ; fila3[0] = 0
+    INC R1
+    MOV [R1], R2      ; fila3[1] = 0
+    INC R1
+    MOV [R1], R2      ; fila3[2] = 0
+    
+    ; Reiniciar variables de control
+    MOVL R1, BYTEBAJO DIRECCION jugador
+    MOVH R1, BYTEALTO DIRECCION jugador
+    MOVL R2, 1        ; Reiniciar a jugador 1
+    MOVH R2, 00h
+    MOV [R1], R2
+    
+    MOVL R1, BYTEBAJO DIRECCION guanyador
+    MOVH R1, BYTEALTO DIRECCION guanyador
+    MOVL R2, 0        ; Reiniciar a no hay ganador
+    MOVH R2, 00h
+    MOV [R1], R2
+    
+    RET
+    
+;------------------------------------------------------
+;Final del joc
+;------------------------------------------------------
+
+final_joc:
+     ;Netejar pantalla
+     ; Netejar pantalla
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+    
+    ; Mostrar missatge final
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R1, 33      ; Posició per al missatge
+    MOVH R1, 00h
+    ADD R0, R0, R1
+    
+    ; Comprovar el valor de guanyador
+    MOVL R1, BYTEBAJO DIRECCION guanyador
+    MOVH R1, BYTEALTO DIRECCION guanyador
+    MOV R2, [R1]      ; R2 = valor de guanyador
+    
+    MOVL R3, 1
+    MOVH R3, 00h
+    COMP R2, R3
+    BRZ mostrar_guanyador_1
+    
+    MOVL R3, 2
+    MOVH R3, 00h
+    COMP R2, R3
+    BRZ mostrar_guanyador_2
+    
+    ; Si no és 1 ni 2, és empat (3)
+    MOVL R3, BYTEBAJO DIRECCION text_empat
+    MOVH R3, BYTEALTO DIRECCION text_empat
+    MOVL R5, 7       ; Longitud del missatge
+    MOVH R5, 00h
+    
+    ; Bucle per mostrar el text
+    bucle_mostrar_empat:
+        MOV R4, [R3]                ; Llegir caràcter
+        MOVH R4, 00000111b ; Format (blanc sobre negre)
+        MOV [R0], R4                ; Mostrar
+        INC R0                      ; Següent posició pantalla
+        INC R3                      ; Següent caràcter
+        DEC R5                      ; Decrementar contador
+        BRNZ bucle_mostrar_empat    ; Repetir si no hem acabat
+    
+    JMP mostrar_pregunta_reinici
+    
+mostrar_guanyador_1:
+    ;Mostrar nom del jugador 1
+    MOVL R3, BYTEBAJO DIRECCION nom_jugador1
+    MOVH R3, BYTEALTO DIRECCION nom_jugador1
+    
+    ; Bucle per mostrar el nom (10 caràcters)
+    MOVL R5, 10
+    MOVH R5, 00h
+    
+    ;Bucle per mostrar el nom del jugador 1
+mostrar_nom_guanyador1:
+    MOV R4, [R3]      ; Llegir caràcter
+    MOVH R4, 00000111b    ; Format (blanc sobre negre)
+    MOV [R0], R4
+    INC R0            ; Següent posició pantalla
+    INC R3            ; Següent caràcter
+    
+    ; Decrementar comptador
+    DEC R5
+    BRNZ mostrar_nom_guanyador1
+    
+    JMP mostrar_ha_guanyat
+    
+mostrar_guanyador_2:
+    ;Mostrar nom del jugador 2
+    MOVL R3, BYTEBAJO DIRECCION nom_jugador2
+    MOVH R3, BYTEALTO DIRECCION nom_jugador2
+    
+    ; Bucle per mostrar el nom (10 caràcters)
+    MOVL R5, 10
+    MOVH R5, 00h
+    
+    ;Bucle per mostrar el nom del jugador 2
+mostrar_nom_guanyador2:
+    MOV R4, [R3]      ; Llegir caràcter
+    MOVH R4, 00000111b    ; Format (blanc sobre negre)
+    MOV [R0], R4      ; Mostrar caràcter
+    INC R0            ; Següent posició pantalla
+    INC R3            ; Següent caràcter
+    
+    ; Decrementar comptador
+    DEC R5
+    BRNZ mostrar_nom_guanyador2
+    
+    ; Caer al siguiente bloque para mostrar "HAS GUANYAT"
+    
+mostrar_ha_guanyat:
+    ; Saltar a la siguiente línea para mostrar "HAS GUANYAT"
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R1, 48     ; Posición para la segunda línea (36 + 60)
+    MOVH R1, 00h
+    ADD R0, R0, R1
+
+    ;Text "HAS GUANYAT"
+    MOVL R3, BYTEBAJO DIRECCION text_guanyador
+    MOVH R3, BYTEALTO DIRECCION text_guanyador
+    MOVL R5, 11       ; Longitud del missatge
+    MOVH R5, 00h
+    
+    ;Bucle per mostrar el text
+    bucle_mostrar_ha_guanyat:
+        MOV R4, [R3]                ; Llegir caràcter
+        MOVH R4, 00000111b ; Format (blanc sobre negre)
+        MOV [R0], R4                ; Mostrar
+        INC R0                      ; Següent posició pantalla
+        INC R3                      ; Següent caràcter
+        DEC R5                      ; Decrementar contador
+        BRNZ bucle_mostrar_ha_guanyat ; Repetir si no hem acabat
+    
+    JMP mostrar_pregunta_reinici
+    
+mostrar_pregunta_reinici:
+    ;Netejar pantalla
+    MOVL R0, BYTEBAJO DIRECCION netejar_pantalla
+    MOVH R0, BYTEALTO DIRECCION netejar_pantalla
+    CALL R0
+
+    ; Mostrar pregunta de reinici
+    MOVL R0, BYTEBAJO PANTALLA
+    MOVH R0, BYTEALTO PANTALLA
+    MOVL R1, 30      ; Nova línia
+    MOVH R1, 00h
+    ADD R0, R0, R1
+    
+    ; Text "JUGAR ALTRA PARTIDA? (S/N)"
+    MOVL R3, BYTEBAJO DIRECCION text_reinici
+    MOVH R3, BYTEALTO DIRECCION text_reinici
+    MOVL R5, 21       ; Longitud del missatge
+    MOVH R5, 00h
+    
+    ; Bucle per mostrar el text
+    bucle_mostrar_reinici:
+        MOV R4, [R3]                ; Llegir caràcter
+        MOVH R4, 00000111b ; Format (blanc sobre negre)
+        MOV [R0], R4                ; Mostrar
+        INC R0                      ; Següent posició pantalla
+        INC R3                      ; Següent caràcter
+        DEC R5                      ; Decrementar contador
+        BRNZ bucle_mostrar_reinici  ; Repetir si no hem acabat
+    
+; Esperar respuesta S/N con bucle de espera activa
+esperar_tecla_sn:
+    MOVL R0, BYTEBAJO DIRECCION consulta_teclat
+    MOVH R0, BYTEALTO DIRECCION consulta_teclat
+    CALL R0           ; Consultar teclat
+    
+    ; Leer el valor de la tecla pulsada
+    MOVL R0, BYTEBAJO TECLAT
+    MOVH R0, BYTEALTO TECLAT
+    MOV R1, [R0]    ; R1 ahora contiene el valor de la tecla
+    
+    ; Si no hay tecla pulsada (R1 = 0), seguir esperando
+    MOVL R2, 0
+    MOVH R2, 0
+    COMP R1, R2
+    BRZ esperar_tecla_sn
+    
+    MOVH R1, 00h
+    
+    ; Comprovar si és 'S' o 's'
+    MOVL R3, 'S'
+    MOVH R3, 00h
+    COMP R1, R3
+    BRZ saltar_a_ini
+    
+    MOVL R3, 's'
+    MOVH R3, 00h
+    COMP R1, R3
+    BRZ saltar_a_ini
+        
+    ; Si no és 'S' o 's', saltar al final del programa
+    MOVL R3, 0
+    MOVH R3, 0
+    COMP R3, R3  ; Esto siempre dará resultado cero
+    BRZ fi_programa
+        
+saltar_a_ini:
+   
+    ; Saltar directamente a ini
+    MOVL R0, BYTEBAJO DIRECCION ini
+    MOVH R0, BYTEALTO DIRECCION ini
+    CALL R0
+
+fi_programa:
+
+    ;Reiniciar joc
+    MOVL R0, BYTEBAJO DIRECCION reiniciar_joc
+    MOVH R0, BYTEALTO DIRECCION reiniciar_joc
+    CALL R0
+
+    FIN 
